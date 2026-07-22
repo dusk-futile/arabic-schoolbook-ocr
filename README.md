@@ -6,15 +6,15 @@ Privacy-first Arabic PDF transcription into editable, semantic Word documents. T
 
 `TRAINING_APPROVED=false`. This repository contains no training workflow, private book, external dataset payload, or fine-tuned weight.
 
-![Four-screen product concept](docs/design/ui-concept.png)
+![Minimal upload, loading, and result concept](docs/design/minimal-workflow-concept.png)
 
-Current synthetic-only application screens:
+The main interface is a single, distraction-free path: choose a PDF, watch real page progress, then download the polished Word document. Provider settings remain available from the gear without interrupting that path.
 
-| Upload and provider selection | Process-local provider settings |
-|---|---|
-| ![Upload screen](docs/screenshots/upload.png) | ![Settings screen](docs/screenshots/settings.png) |
+| Upload | Processing | Result |
+|---|---|---|
+| ![Minimal upload screen](docs/screenshots/minimal-upload.png) | ![Minimal loading screen](docs/screenshots/minimal-loading.png) | ![Minimal result screen](docs/screenshots/minimal-result.png) |
 
-![Synthetic review screen](docs/screenshots/review.png)
+![Responsive mobile upload screen](docs/screenshots/minimal-mobile.png)
 
 The distributable fixture below is project-authored under CC0; it is not a page from the private acceptance book.
 

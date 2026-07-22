@@ -10,7 +10,7 @@ All notable changes follow a Keep a Changelog style. The project uses semantic v
 - canonical block, boundary, table, mixed-script, consent, usage, and correction schemas;
 - per-page preprocessing, reading order, checkpointing, failure continuation, overlays, reports, and full-book runner;
 - semantic RTL/LTR literal and polished DOCX exports with real lists, tables, figures, headers, footers, and validation;
-- FastAPI backend and four-screen React interface for upload, progress, review, and export;
+- FastAPI backend and a minimalist one-page React flow for PDF upload, real processing progress, and direct polished-Word download;
 - public CC0 Arabic demonstration fixture, tests, licensing records, privacy/security documentation, container files, and CI;
 - 30-page private benchmark selection with ground-truth metrics blocked until human approval.
 - completed 209-page local acceptance output with checkpoint resume, exact PDF page-count verification, and source-scale figure rendering.
