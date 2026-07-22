@@ -1,0 +1,9 @@
+source_dataset_id: arabic-img2md
+layer: B_SYNTHETIC_ARABIC_OCR
+revision: b259f4e285483107f1585960cfd62e17bdc6c712
+license: GPL-3.0
+source_text_origin: Hindawi_HTML_scrape_per_paper
+source_item_licenses_documented: false
+status: HOLD_SOURCE_PROVENANCE
+planned_path: datasets/layer_b_synthetic_ocr/arabic_img2md/hf-b259f4e285483107f1585960cfd62e17bdc6c712
+payload_downloaded: false

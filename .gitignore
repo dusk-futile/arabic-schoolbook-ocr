@@ -1,0 +1,43 @@
+# Private source material and all derivatives
+private_data/
+artifacts/
+tmp/
+
+# Dataset payloads and model weights must remain outside version control
+datasets/
+models/
+checkpoints/
+adapters/
+
+# Local environments and caches
+.venv/
+__pycache__/
+*.py[cod]
+.cache/
+.huggingface/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+coverage.xml
+dist/
+build/
+*.egg-info/
+node_modules/
+web/node_modules/
+web/dist/
+.codex-*.log
+examples/demo/output/demo_rendered_2.pdf
+examples/demo/output/rendered2/
+
+# Private application inputs, checkpoints, and evaluation annotations
+jobs/
+data/uploads/
+data/ground_truth/
+output/private/
+
+# Secrets and local configuration
+.env
+.env.*
+!.env.example
+secrets/

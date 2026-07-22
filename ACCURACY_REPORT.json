@@ -1,0 +1,33 @@
+{
+  "report_date": "2026-07-22",
+  "status": "BLOCKED_PENDING_HUMAN_GROUND_TRUTH",
+  "evaluation_pages_locked": 30,
+  "human_reviewed_pages": 0,
+  "human_approved_pages": 0,
+  "training_allowed": false,
+  "local_full_book": {
+    "source_pages": 209,
+    "completed_pages": 209,
+    "failed_pages": 0,
+    "canonical_blocks": 1469,
+    "unresolved_blocks": 1457,
+    "unresolved_rate": 0.9918311777,
+    "cer": null,
+    "wer": null
+  },
+  "gemini_variants": {
+    "visual_verification_only": "NOT_RUN",
+    "visual_verification_and_formatting": "NOT_RUN",
+    "full_three_agent_pipeline": "NOT_RUN"
+  },
+  "formatting_audit": {
+    "sample_pages": 10,
+    "automated_visual_state": "NEEDS_CORRECTION",
+    "human_approved_pages": 0
+  },
+  "blocked_by": [
+    "human-approved reference text and structure are incomplete",
+    "no explicit consent and credentials were supplied for a private Gemini run",
+    "provider outputs cannot be treated as ground truth"
+  ]
+}

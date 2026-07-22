@@ -1,0 +1,11 @@
+source_dataset_id: arabic-ebook-corpus
+layer: A_GENERAL_ARABIC_TEXT
+revision: "doi:10.5878/7rbh-gy93#version-1"
+published: "2024-12-11"
+license: CC-BY-4.0
+commercial_use: allowed
+redistribution: allowed_with_attribution
+share_alike: false
+status: CANDIDATE_APPROVED_PENDING_USER_GATE
+planned_path: datasets/layer_a_general_text/arabic_ebook_corpus/doi-10.5878-7rbh-gy93-v1
+payload_downloaded: false

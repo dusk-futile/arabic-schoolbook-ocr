@@ -1,0 +1,11 @@
+source_dataset_id: sard
+layer: B_SYNTHETIC_ARABIC_OCR
+revision: 1d09bbb8d40645b058118991cf92621a4d606197
+license: CC-BY-NC-ND-4.0
+source_text_origin: Alukah
+commercial_use: prohibited
+redistribution: prohibited_by_dataset_card_source_note
+derivatives: prohibited_for_distribution
+status: BLOCKED
+planned_path: datasets/layer_b_synthetic_ocr/sard/hf-1d09bbb8d40645b058118991cf92621a4d606197
+payload_downloaded: false
