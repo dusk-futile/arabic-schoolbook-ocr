@@ -8,7 +8,7 @@
 
 *Offline · no cloud · no account · no admin rights*
 
-![Messy Arabic scans being converted into a clean, formatted Word document](hero.gif)
+![Aged Arabic pages whose text layer reads as nonsense, beside the clean Word document mubsir recovers from them](hero.jpg)
 
 </div>
 
@@ -104,7 +104,7 @@ layer, **6–9 s** per scanned page. A 209-page book takes about **104 seconds**
 ```
 run.py             install and run
 mubsir/            the pipeline, its tests, demo pages, models
-hero.gif           the picture above
+hero.jpg           the picture above
 requirements.txt   dependencies
 ```
 
