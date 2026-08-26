@@ -145,8 +145,9 @@ function show(s){
         <table><tr><th>صفحات</th><td>${r.pages}</td><th>فقرات</th><td>${r.paragraphs}</td>
         <th>بحاجة مراجعة</th><td>${r.flagged}</td><th>ثانية</th><td>${r.seconds}</td></tr></table>
         <a class="dl" href="/api/download?job=${s.job}&i=${r.i}&kind=docx">تنزيل Word</a>
+        <a class="dl" href="/api/download?job=${s.job}&i=${r.i}&kind=pdf" target="_blank">PDF للمراجعة</a>
         <a class="dl" href="/api/download?job=${s.job}&i=${r.i}&kind=txt">نص</a>
-        <a class="dl" href="/api/download?job=${s.job}&i=${r.i}&kind=report" target="_blank">تقرير المراجعة</a>`;
+        <a class="dl" href="/api/download?job=${s.job}&i=${r.i}&kind=report" target="_blank">تقرير</a>`;
     }
     ul.appendChild(li);
   });
@@ -178,11 +179,17 @@ def _run_job(job_id: str, paths):
             stem = os.path.splitext(name)[0]
             out = {
                 "docx": os.path.join(OUTPUT_DIR, f"{stem}.docx"),
+                "pdf": os.path.join(OUTPUT_DIR, f"{stem}.review.pdf"),
                 "txt": os.path.join(OUTPUT_DIR, f"{stem}.txt"),
                 "report": os.path.join(OUTPUT_DIR, f"{stem}.review.html"),
             }
             build_docx(res.paras, out["docx"])
             build_plain_text(res.paras, out["txt"])
+            try:
+                from .pdf_out import build_review_pdf
+                build_review_pdf(res.paras, out["pdf"])
+            except Exception:
+                out.pop("pdf", None)
             write_report(res, out["report"], source_name=name)
             results.append({"i": i, "name": name, "paths": out, **res.stats})
         except Exception as e:
@@ -228,8 +235,9 @@ class Handler(http.server.BaseHTTPRequestHandler):
                 return self._send(404, b'{"error":"not found"}')
             ctype = {"docx": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
                      "txt": "text/plain; charset=utf-8",
+                     "pdf": "application/pdf",
                      "report": "text/html; charset=utf-8"}[kind]
-            disp = "inline" if kind == "report" else "attachment"
+            disp = "inline" if kind in ("report", "pdf") else "attachment"
             return self._send(200, data, ctype,
                               {"Content-Disposition": f'{disp}; filename="{os.path.basename(path)}"'})
         return self._send(404, b'{"error":"not found"}')

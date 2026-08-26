@@ -58,6 +58,51 @@ class Geometry:
     page_h: float
 
 
+# --------------------------------------------------------------- features
+FEATURE_NAMES = [
+    "left_gap",        # RTL: how early the previous line ended (share of column)
+    "right_gap",       # RTL: how far this line is indented from the right margin
+    "prev_fill",       # how much of the column the previous line used
+    "gap_ratio",       # vertical gap / modal line gap
+    "terminal_punct",  # previous line ends a sentence
+    "cont_punct",      # previous line ends mid-clause
+    "list_marker",     # this line opens a list item
+    "centred",         # this line is centred and short
+    "justified",       # the block is justified, so short lines are meaningful
+    "size_ratio",      # relative type size change
+    "bias",
+]
+
+
+def break_features(prev: Line, cur: Line, g: "Geometry") -> List[float]:
+    """The evidence a paragraph-break decision rests on, as plain numbers.
+
+    Shared by the hand-weighted scorer and the learned one, so both see exactly
+    the same view of the page and can be compared honestly.
+    """
+    width = g.width or 1.0
+    left_gap = (prev.x0 - g.left) / width
+    right_gap = (g.right - cur.x1) / width
+    vgap = (cur.y0 - prev.y0) / g.gap if g.gap > 0 else 1.0
+    stripped = prev.text.rstrip()
+    last = stripped[-1] if stripped else ""
+    center = (g.left + g.right) / 2
+    lo, hi = min(prev.size, cur.size), max(prev.size, cur.size)
+    return [
+        max(-0.5, min(1.5, left_gap)),
+        max(-0.5, min(1.5, right_gap)),
+        _fill(prev, g.left, g.right),
+        max(0.0, min(6.0, vgap)),
+        1.0 if last in TERMINAL_PUNCT else 0.0,
+        1.0 if last in "\u060c\u061b,-\u2013\u2014" else 0.0,
+        1.0 if LIST_RE.match(cur.text) else 0.0,
+        1.0 if (abs(cur.cx - center) < width * 0.06 and cur.width < width * 0.72) else 0.0,
+        1.0 if g.justified else 0.0,
+        max(0.5, min(2.5, (hi / lo) if lo > 0.1 else 1.0)),
+        1.0,
+    ]
+
+
 def _size_differs(a: float, b: float, g: "Geometry", noisy: bool = False) -> bool:
     """Do two lines use materially different type sizes?
 
@@ -171,10 +216,27 @@ def find_furniture(pages: List[PageInfo], min_share: float = 0.34) -> set:
     for p in pages:
         if not p.lines or p.height <= 0:
             continue
-        for l in p.lines:
+        ordered = sorted(p.lines, key=lambda l: l.y0)
+        gaps = [b.y0 - a.y0 for a, b in zip(ordered, ordered[1:]) if b.y0 > a.y0]
+        modal_gap = _modal(gaps, 0.5) if gaps else 0.0
+        for idx, l in enumerate(ordered):
             rel = l.y0 / p.height
             if not (rel < 0.13 or rel > 0.87):
                 continue
+            # Being near the top is not enough. The first body line often sits
+            # inside the top 13% too, and once digits are masked "نص 1-0" and
+            # "نص 2-0" look identical across pages - so body text would be
+            # deleted as a running head. Real furniture is visually detached:
+            # it sits alone, separated from the text block by more than a
+            # normal line gap.
+            if modal_gap > 0:
+                below = ordered[idx + 1].y0 - l.y0 if idx + 1 < len(ordered) else None
+                above = l.y0 - ordered[idx - 1].y0 if idx else None
+                detached = ((below is not None and below > modal_gap * 1.6)
+                            if rel < 0.13 else
+                            (above is not None and above > modal_gap * 1.6))
+                if not detached:
+                    continue
             key_txt = re.sub(r"[0-9٠-٩]+", "#", search_form(l.text)) or "#"
             cands.append((rel, key_txt, id(l), p.number))
 
@@ -438,7 +500,9 @@ def _join(lines: List[Line]) -> str:
     return " ".join(p for p in parts if p)
 
 
-def build_paragraphs(pages: List[PageInfo], drop_furniture: bool = True) -> List[Para]:
+def build_paragraphs(pages: List[PageInfo], drop_furniture: bool = True,
+                     use_model: bool = True,
+                     model_threshold: float = 0.80) -> List[Para]:
     furniture = find_furniture(pages) if drop_furniture else set()
 
     ordered: List[Line] = []
@@ -474,18 +538,47 @@ def build_paragraphs(pages: List[PageInfo], drop_furniture: bool = True) -> List
     if not ordered:
         return []
 
-    paras: List[Para] = []
-    cur: List[Line] = [ordered[0]]
-    cur_conf: List[float] = []
-    cur_reasons: List[str] = []
+    # Pass 1: score every boundary deterministically, keeping the reasons.
+    decisions: List[Decision] = []
     for prev, line in zip(ordered, ordered[1:]):
         g = (geoms.get((line.page, line.column))
              or geoms.get((prev.page, prev.column))
              or next((v for k, v in geoms.items() if k[0] == line.page), None))
-        if g is None:
-            cur.append(line)
-            continue
-        d = decide_break(prev, line, g)
+        decisions.append(decide_break(prev, line, g) if g is not None
+                         else Decision(False, 0.0, ["no-geometry"]))
+
+    # Pass 2: the learned classifier breaks ties. The rules keep every boundary
+    # they are confident about; this is consulted only where they are not,
+    # which is a few percent of boundaries on a normal page.
+    if use_model:
+        from .boundary_model import get_model
+        model = get_model()
+        if model.available:
+            for i, (prev, line) in enumerate(zip(ordered, ordered[1:])):
+                if decisions[i].confidence >= model_threshold:
+                    continue
+                if prev.page != line.page or prev.column != line.column:
+                    continue      # a page or column change is never in doubt
+                g = (geoms.get((line.page, line.column))
+                     or next((v for k, v in geoms.items() if k[0] == line.page), None))
+                if g is None:
+                    continue
+                feats = break_features(prev, line, g)
+                p = model.probability(feats)
+                if p is None:
+                    continue
+                decisions[i] = Decision(
+                    p >= model.threshold,
+                    min(1.0, abs(p - model.threshold) * 2 + 0.5),
+                    decisions[i].reasons + [f"model({p:.2f}:{model.explain(feats)})"],
+                )
+
+    paras: List[Para] = []
+    cur: List[Line] = [ordered[0]]
+    cur_conf: List[float] = []
+    cur_reasons: List[str] = []
+    for i, line in enumerate(ordered[1:]):
+        d = decisions[i]
         if d.is_break:
             paras.append(_make_para(cur, geoms, cur_conf, cur_reasons))
             cur, cur_conf, cur_reasons = [line], [], []

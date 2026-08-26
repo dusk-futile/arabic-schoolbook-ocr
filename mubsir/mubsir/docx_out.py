@@ -11,6 +11,7 @@ heading sat on the page.
 """
 from __future__ import annotations
 
+import re
 from typing import Iterable, List, Optional
 
 from docx import Document
@@ -24,6 +25,37 @@ from .model import (BODY, CAPTION, FOOTNOTE, HEADING, LIST_ITEM, SUBHEADING,
 
 ARABIC_FONT = "Simplified Arabic"
 FALLBACK_FONTS = ["Traditional Arabic", "Arial", "Times New Roman"]
+
+
+# Whitespace that must never reach an embosser. A Braille cell is literal: a
+# no-break space is a real cell, a tab is undefined, a line separator becomes a
+# hard line ending mid-paragraph, and a bidi control renders as a stray cell or
+# silently reorders the line. The only whitespace allowed inside a paragraph is
+# a single U+0020; the only paragraph separator is the Word paragraph mark
+# itself, never a character inside the text.
+_KILL = dict.fromkeys(map(ord, (
+    "\u00a0\u2007\u202f\u2009\u200a\u2028\u2029\u000b\u000c"
+    "\u200b\u200c\u200d\ufeff\u00ad\u2060"
+    "\u200e\u200f\u202a\u202b\u202c\u202d\u202e"
+    "\u2066\u2067\u2068\u2069\u061c"
+)), " ")
+
+
+def emboss_safe(text: str) -> str:
+    """Collapse a paragraph to exactly one line with single spaces.
+
+    Applied to every paragraph on the way into the document, so the guarantee
+    holds by construction rather than by whatever the upstream stages happened
+    to produce. eval/audit_docx.py re-checks it on the finished file.
+    """
+    if not text:
+        return ""
+    text = text.translate(_KILL)
+    text = text.replace("\t", " ")
+    # a newline inside a paragraph is a soft wrap that was never resolved
+    text = re.sub(r"[\r\n]+", " ", text)
+    text = re.sub(r" {2,}", " ", text)
+    return text.strip()
 
 
 def _el(tag: str, **attrs) -> OxmlElement:
@@ -84,13 +116,13 @@ def build_docx(paras: Iterable[Para], out_path: str,
     normal.font.size = Pt(13)
 
     if title:
-        p = doc.add_paragraph(title, style="Title")
+        p = doc.add_paragraph(emboss_safe(title), style="Title")
         _set_rtl_para(p, justify=False)
         for r in p.runs:
             _set_rtl_run(r, font, 20)
 
     for para in paras:
-        text = para.text.strip()
+        text = emboss_safe(para.text)
         if not text:
             continue
         style, size, justify = STYLE_FOR.get(para.kind, ("Normal", 13, True))
@@ -119,7 +151,7 @@ def build_plain_text(paras: Iterable[Para], out_path: str) -> str:
     """
     chunks: List[str] = []
     for p in paras:
-        t = p.text.strip()
+        t = emboss_safe(p.text)
         if t:
             chunks.append(t)
     with open(out_path, "w", encoding="utf-8") as f:

@@ -11,6 +11,7 @@ import sys
 import time
 
 from .docx_out import build_docx, build_plain_text
+from .pdf_out import build_review_pdf
 from .pipeline import Options, Pipeline
 from .report import write_report
 
@@ -32,11 +33,18 @@ def process_one(path: str, outdir: str, opts: Options, quiet: bool = False) -> d
     os.makedirs(outdir, exist_ok=True)
     docx_path = os.path.join(outdir, f"{name}.docx")
     txt_path = os.path.join(outdir, f"{name}.txt")
+    pdf_path = os.path.join(outdir, f"{name}.review.pdf")
     rep_path = os.path.join(outdir, f"{name}.review.html")
     build_docx(res.paras, docx_path)
     build_plain_text(res.paras, txt_path)
+    try:
+        build_review_pdf(res.paras, pdf_path)
+    except Exception as e:                      # never fail the run over the PDF
+        pdf_path = None
+        res.warnings.append(f"review PDF failed: {type(e).__name__}: {e}")
     write_report(res, rep_path, source_name=os.path.basename(path))
-    res.stats["outputs"] = {"docx": docx_path, "txt": txt_path, "report": rep_path}
+    res.stats["outputs"] = {"docx": docx_path, "txt": txt_path,
+                            "pdf": pdf_path, "report": rep_path}
     return res.stats
 
 
@@ -100,8 +108,9 @@ def main(argv=None) -> int:
             print(f"   pages={st['pages']} paragraphs={st['paragraphs']} "
                   f"flagged={st['flagged']} time={st['seconds']}s")
             print(f"   Word     : {o['docx']}")
+            print(f"   Review PDF: {o['pdf']}")
             print(f"   Text     : {o['txt']}")
-            print(f"   Review   : {o['report']}")
+            print(f"   Report   : {o['report']}")
     if args.json:
         print(json.dumps(all_stats, ensure_ascii=False, indent=1))
     return 0 if all_stats else 1

@@ -4,45 +4,51 @@ Privacy-first Arabic PDF transcription into editable, semantic Word documents. T
 
 > **v0.1.0-alpha:** the local pipeline and public synthetic demo run end to end, but this is not a production-accuracy release. CER/WER are blocked on human ground truth, the real-book formatting audit needs correction, and the optional Gemini pipeline has not been run on private pages.
 
-## New: `mubsir/` — a measured, fully offline pipeline
+## `mubsir/` — messy Arabic pages in, one clean Word file out
 
-The [`mubsir/`](mubsir/) directory adds a second, self-contained pipeline built
-around the problem this repository has been blocked on: **accuracy you can
-actually measure**. It ships its own gold set, so every number below is
-reproducible with one command and none of it depends on a private book.
+![messy Arabic scans converted into a clean Word document](mubsir/docs/hero.png)
+
+The [`mubsir/`](mubsir/) directory adds a second, self-contained pipeline aimed
+at the thing this repository has been blocked on: **accuracy you can actually
+measure**. It ships its own ground truth, so every number below is reproducible
+in one command and none of it depends on a private book.
 
 ```bash
 cd mubsir && ./setup.sh && python demo/run_demo.py
 ```
 
-| Path | CER | WER | Paragraph F1 | Reading order |
+| Input | Characters wrong | Words wrong | Paragraphs right | Reading order |
 |---|---|---|---|---|
-| Born-digital text layer | exact | exact | **0.9995** | 1.000 |
-| Repaired text layer | 0.905 word validity (clean prose = 0.870) | — | **0.9995** | 1.000 |
-| Scanned, single column | **0.0145** | **0.041** | 0.932 | **1.000** |
-| Scanned, two column | 0.080 | 0.136 | 0.842 | 0.998 |
+| PDF with a good text layer | 0% | 0% | **99.95%** | **100%** |
+| Scanned page, single column | **1.5%** | **4.1%** | 93.2% | **100%** |
+| Scanned page, two columns | 8.0% | 13.6% | 87.8% | 99.8% |
 
-Two findings drove it:
+**The finding that drove it: an Arabic PDF's text layer can be wrong while
+looking completely fine.** A real 209-page Word 2010 book renders as
+`ليصبح التفوق والموهبة` and extracts as `ليربح التفػؽ كالسػـبة`. Every wrong
+character is still a valid Arabic letter, so a corruption check scores the page
+**0.0% corrupt** while it is unreadable — only a dictionary catches it. The
+glyphs were never wrong, only their Unicode labels, so reading the raw glyph IDs
+back through the embedded font recovers the text **exactly, with no OCR**:
+**30% → 90% real Arabic words, 209 pages in 94 seconds.**
 
-**An Arabic text layer can be wrong while looking right.** A real 209-page book
-written in Word 2010 extracts as `ليربح التفػؽ كالسػـبة` where it renders as
-`ليصبح التفوق والموهبة`. Every wrong character is still a valid Arabic letter,
-so a character-class corruption check scores the page **0.0% corrupt** while it
-is unreadable — only a dictionary sees it. The glyphs are fine and only their
-Unicode labels are broken, so reading the raw glyph ids back through the
-embedded font recovers the text exactly, with no OCR: **30% → 90% real Arabic
-words**, 209 pages in 94 seconds.
+Also inside:
 
-**No single OCR engine is good at both halves of the job.** DBNet finds every
-line including the short paragraph-final ones that carry the paragraph-break
-signal; Tesseract reads Arabic about three times more accurately but silently
-drops those same lines under every page-segmentation mode. Combining
-DBNet detection with Tesseract recognition cut CER 4.8x, WER 7.5x and
-hallucination 10x against the PP-OCR-only baseline.
+- **Two OCR engines covering each other's blind spot.** DBNet finds every line
+  including the short paragraph-final ones that signal a paragraph ended;
+  Tesseract reads Arabic ~3× more accurately but drops exactly those lines under
+  every page-segmentation mode. Combined: CER 4.8× better, WER 7.5× better.
+- **A whitespace guarantee.** For an embosser a space and a paragraph mark are
+  different instructions, so the `.docx` is built with no manual line breaks at
+  all; `eval/audit_docx.py` re-checks the finished file at the XML level.
+- **1.1 KB of machine learning, not a gigabyte.** Local LLMs were tried on the
+  paragraph-boundary decision and scored at chance — both answered the same word
+  to every question. A logistic regression over eleven geometric features,
+  validated leave-one-style-out, lifts scanned-page paragraph accuracy
+  0.9143 → 0.9399.
 
-Full method, the engine benchmark (including EasyOCR, rejected at 50 s/page),
-and an explicit list of what still fails are in
-[`mubsir/RESEARCH.md`](mubsir/RESEARCH.md).
+Full method, the engine benchmark (EasyOCR rejected at 50 s/page), and an
+explicit list of what still fails: [`mubsir/RESEARCH.md`](mubsir/RESEARCH.md).
 
 `TRAINING_APPROVED=false`. This repository contains no training workflow, private book, external dataset payload, or fine-tuned weight.
 

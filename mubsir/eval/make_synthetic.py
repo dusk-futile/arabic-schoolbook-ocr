@@ -37,21 +37,9 @@ STYLES = {
 FONT_STACK = "sans-serif"
 
 
-CORPUS_DIRS = ["eval/corpus", "demo/corpus"]
-
-
-def load_corpus(path=None):
-    """Prefer a locally fetched corpus, else the bundled demo one."""
-    dirs = [path] if path else CORPUS_DIRS
+def load_corpus(path="eval/corpus"):
     paras = []
-    files = []
-    for d in dirs:
-        files = sorted(glob.glob(os.path.join(d, "*.txt")))
-        if files:
-            break
-    for f in files:
-        if os.path.basename(f) == "SOURCES.txt":
-            continue
+    for f in sorted(glob.glob(os.path.join(path, "*.txt"))):
         for p in open(f, encoding="utf-8").read().split("\n\n"):
             p = " ".join(p.split())
             if len(p) > 120:

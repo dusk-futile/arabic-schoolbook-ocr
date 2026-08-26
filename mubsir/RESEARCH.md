@@ -388,6 +388,115 @@ first layout to fail under box noise (F1 0.625 at 8 pt jitter versus 0.943 for
 single-column). Multi-column scans should be routed to a human, and the pipeline
 flags them in the review report.
 
+---
+
+## 8. Whitespace: the space-vs-return guarantee
+
+The charity's stated failure mode is not wrong letters, it is structure - and
+at the character level that reduces to one distinction. An embosser treats a
+**space** and a **paragraph mark** as different instructions. A space is a
+Braille cell. A paragraph mark ends a block. A stray line break inside a
+paragraph becomes a hard line ending that the reader cannot distinguish from a
+real one.
+
+So the output is not merely checked for this, it is constructed so it cannot
+happen. `emboss_safe()` runs over every paragraph on the way into the document:
+
+- newlines and carriage returns inside a paragraph collapse to one space
+  (a newline inside a paragraph is a soft wrap that was never resolved);
+- tabs collapse to one space;
+- runs of spaces collapse to one;
+- non-breaking, thin, hair, figure, line- and paragraph-separator spaces all
+  become a plain U+0020 - each of them is a real cell to an embosser;
+- zero-width and bidi control characters are deleted outright, because they
+  render as stray cells or silently reorder the line;
+- leading and trailing spaces are stripped.
+
+Word does the line wrapping. The file contains **no manual line breaks at all**.
+
+Verified two ways. `tests/test_emboss_safety.py` asserts it at the API level,
+and `eval/audit_docx.py` re-checks the finished `.docx` at the XML level:
+
+```
+AUDIT  output/sample_book.docx
+  [ ok ] hard_line_breaks              0
+  [ ok ] newline_inside_paragraph      0
+  [ ok ] tab_runs                      0
+  [ ok ] double_space                  0
+  [ ok ] leading_or_trailing_space     0
+         paragraphs_total            133
+         words_total                4646
+VERDICT: clean for embossing
+```
+
+---
+
+## 9. The local model question, answered with a measurement
+
+A small local model was asked to do the one job a model could plausibly help
+with here: decide, at a boundary the deterministic scorer was unsure about,
+whether two lines belong to the same paragraph. One closed question, one-word
+answer, no text ever taken back from the model - so it could move a paragraph
+boundary but could not invent a word.
+
+**Both models failed the same way: they answered the same word every time.**
+
+| Model | Size | Prompt language | Answers | Accuracy | Time |
+|---|---|---|---|---|---|
+| `qwen2.5vl:3b` | 3.2 GB | English (SAME/NEW) | `NEW` to all 4 | chance | 6.3 s each |
+| `qwen2.5:1.5b` | 986 MB | Arabic (نعم/لا) | `نعم` to all 6 | 3/6 = chance | 1.6 s each |
+| `qwen2.5vl:3b` | 3.2 GB | Arabic (نعم/لا) | `نعم` to all 6 | 3/6 = chance | 4.6 s each |
+
+They followed the framing of the question, not the evidence. That is not a
+prompt-tuning problem: the evidence is *geometric* - how much of the column
+the previous line filled, how large the vertical gap is - and a language model
+handed two text snippets cannot see it. On one test it overrode two correct
+deterministic answers with wrong ones.
+
+**The machine learning that does help is much smaller.** The same decision, as
+logistic regression over eleven geometric features:
+
+| | Weights on disk | Time per decision | Held-out F1 |
+|---|---|---|---|
+| Local LLM (1.5B) | 986 MB | 1.6 s | chance |
+| **Learned classifier** | **1.1 KB** | **microseconds** | **0.9910** |
+
+Trained on 15 generated documents (150 pages, 3,379 labelled boundaries) and
+validated **leave-one-style-out** - tested on a layout it never trained on,
+because the charity's next book will not be one of these five:
+
+| Held-out style | Boundaries | Hand-written rules | Learned | Change |
+|---|---|---|---|---|
+| `indent_spaced` | 587 | 1.0000 | 1.0000 | — |
+| `indent_tight` | 610 | 1.0000 | 1.0000 | — |
+| `ragged` | 608 | 1.0000 | 1.0000 | — |
+| `spaced` | 563 | 0.9796 | 1.0000 | +0.0204 |
+| `two_col` | 1011 | 0.9737 | 0.9548 | −0.0188 |
+| **Mean** | | **0.9907** | **0.9910** | +0.0003 |
+
+Read that honestly: **as a replacement it is a tie.** The hand-written rules
+are already near-optimal on clean geometry, and what the model learned confirms
+their design - the largest weights are `gap_ratio` (+4.98), `size_ratio`
+(+3.05), `left_gap` (+1.73) and `prev_fill` (−1.53), the same signals in the
+same directions.
+
+Where it does earn its place is as a **tiebreaker on noisy geometry**. The
+rules keep every boundary they are confident about; the model is consulted only
+where they are not, which on a scanned page is a few percent of boundaries:
+
+| Style (scanned path) | Rules only | + learned tiebreaker | Change |
+|---|---|---|---|
+| `spaced` | 0.9333 | **1.0000** | +0.0667 |
+| `two_col` | 0.8421 | **0.8780** | +0.0359 |
+| `indent_spaced` | 0.8837 | **0.9091** | +0.0254 |
+| `indent_tight` | 0.9444 | 0.9444 | — |
+| `ragged` | 0.9677 | 0.9677 | — |
+| **Mean** | **0.9143** | **0.9399** | **+0.0256** |
+
+No style got worse. That is the "small local AI" in this tool: 1.1 KB of
+weights that runs everywhere, not a gigabyte of language model that guesses.
+
+
 ## Reproducing every number here
 
 ```bash
@@ -395,4 +504,7 @@ flags them in the review report.
 .venv/bin/python eval/run_eval.py           # §2.1 born-digital structure
 .venv/bin/python eval/run_eval_ocr.py       # §2.3 scanned path, CER/WER/F1
 .venv/bin/python eval/run_eval_real.py      # §1.3 font repair on the real book
+.venv/bin/python eval/train_boundary.py    # §9 train + leave-one-style-out
+.venv/bin/python -m pytest tests/ -q       # §8 whitespace guarantees
+.venv/bin/python eval/audit_docx.py FILE  # §8 audit a finished .docx
 ```
