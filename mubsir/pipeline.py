@@ -201,7 +201,7 @@ class Pipeline:
         if self.opts.correct and self.corrector.available:
             self.progress("Checking words against the lexicon",
                           "مطابقة الكلمات مع المعجم", 0.88)
-            from .ocr_correct import fix_characters, fix_comma_lookalikes
+            from .text_fixes import fix_characters, fix_comma_lookalikes
             comma_fixes = 0
             for p in paras:
                 src = p.lines[0].source if p.lines else "digital"

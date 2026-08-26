@@ -507,7 +507,8 @@ own mistakes**, a dictionary-constrained candidate generator, and a frequency
 prior. Training data came free - 150 rendered pages, 38,263 words at 94.9% word
 accuracy, giving 1,616 aligned error sites.
 
-**It made things worse, and it should not ship.**
+**It made things worse, so it does not ship** - the code was removed once the
+measurement was in; the finding is what was worth keeping.
 
 | On held-out documents | |
 |---|---|

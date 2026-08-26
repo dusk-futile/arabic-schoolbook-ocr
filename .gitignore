@@ -17,5 +17,4 @@ samples/
 # Generated while evaluating
 mubsir/tests/synth/
 mubsir/tests/train/
-mubsir/tests/pairs.jsonl
 mubsir/tests/results_*.json
