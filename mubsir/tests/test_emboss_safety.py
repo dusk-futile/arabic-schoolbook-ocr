@@ -14,7 +14,8 @@ import re
 import sys
 import zipfile
 
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+sys.path.insert(0, os.path.dirname(os.path.dirname(
+    os.path.dirname(os.path.abspath(__file__)))))
 
 from mubsir.docx_out import build_docx, build_plain_text, emboss_safe
 from mubsir.model import BODY, HEADING, Para

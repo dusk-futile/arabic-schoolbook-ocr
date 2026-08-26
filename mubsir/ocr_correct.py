@@ -41,8 +41,9 @@ from typing import Dict, Iterable, List, Optional, Sequence, Tuple
 
 from .arabic import canonical, search_form, strip_tashkeel
 
-MODEL_PATH = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
-                          "models", "ocr_correct.json.gz")
+from .paths import MODELS_DIR
+
+MODEL_PATH = os.path.join(MODELS_DIR, "ocr_correct.json.gz")
 
 ARABIC_LO, ARABIC_HI = 0x0600, 0x06FF
 MAX_EDITS = 2

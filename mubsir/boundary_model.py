@@ -22,8 +22,9 @@ import math
 import os
 from typing import List, Optional
 
-MODEL_PATH = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
-                          "models", "boundary_lr.json")
+from .paths import MODELS_DIR
+
+MODEL_PATH = os.path.join(MODELS_DIR, "boundary_lr.json")
 
 
 class BoundaryModel:

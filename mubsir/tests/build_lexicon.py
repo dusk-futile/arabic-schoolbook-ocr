@@ -1,7 +1,8 @@
 """Rebuild models/lexicon/ar_words.txt.gz from the LibreOffice Arabic hunspell
 dictionary. Run once, online; the result is bundled and used offline."""
 import gzip, os, sys, urllib.request
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+sys.path.insert(0, os.path.dirname(os.path.dirname(
+    os.path.dirname(os.path.abspath(__file__)))))
 from mubsir.arabic import canonical, strip_tashkeel
 
 URL = "https://raw.githubusercontent.com/LibreOffice/dictionaries/master/ar/ar.dic"

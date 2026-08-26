@@ -17,7 +17,8 @@ import os
 import sys
 import time
 
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+sys.path.insert(0, os.path.dirname(os.path.dirname(
+    os.path.dirname(os.path.abspath(__file__)))))
 
 import pymupdf
 
@@ -87,7 +88,7 @@ def main():
     for f, r in sorted(font_report.items(), key=lambda kv: -kv[1]["words"]):
         print(f"  {f[:34]:<35} {r['script']:<7} validity={r['tounicode_validity']:.3f} "
               f"{'TRUSTED' if r['trusted'] else 'REPAIRED'}  ({r['words']} words)")
-    json.dump(out, open("tests/results_real.json", "w"), ensure_ascii=False, indent=1)
+    json.dump(out, open("mubsir/tests/results_real.json", "w"), ensure_ascii=False, indent=1)
     print("\nwrote tests/results_real.json")
     return 0
 

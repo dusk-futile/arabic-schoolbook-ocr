@@ -37,7 +37,7 @@ STYLES = {
 FONT_STACK = "sans-serif"
 
 
-def load_corpus(path="demo/corpus"):
+def load_corpus(path="mubsir/demo/corpus"):
     paras = []
     for f in sorted(glob.glob(os.path.join(path, "*.txt"))):
         for p in open(f, encoding="utf-8").read().split("\n\n"):
@@ -149,7 +149,7 @@ def make_doc(out_pdf, out_gold, style_name="indent_tight", n_pages=8, seed=7,
 
 
 if __name__ == "__main__":
-    os.makedirs("tests/synth", exist_ok=True)
+    os.makedirs("mubsir/tests/synth", exist_ok=True)
     for name in STYLES:
-        make_doc(f"tests/synth/{name}.pdf", f"tests/synth/{name}.gold.json",
+        make_doc(f"mubsir/tests/synth/{name}.pdf", f"mubsir/tests/synth/{name}.gold.json",
                  style_name=name, n_pages=8, seed=hash(name) % 1000)

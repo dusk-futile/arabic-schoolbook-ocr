@@ -13,7 +13,7 @@ import numpy as np
 import pymupdf
 from PIL import Image, ImageDraw, ImageFilter, ImageFont
 
-ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 OUT_PNG = os.path.join(ROOT, "docs", "hero.png")
 OUT_GIF = os.path.join(ROOT, "docs", "hero.gif")
 

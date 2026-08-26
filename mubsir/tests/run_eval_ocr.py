@@ -14,13 +14,14 @@ import os
 import sys
 import time
 
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+sys.path.insert(0, os.path.dirname(os.path.dirname(
+    os.path.dirname(os.path.abspath(__file__)))))
 
 import cv2
 import numpy as np
 import pymupdf
 
-from tests.metrics import (boundary_scores, cer, hallucination_rate,
+from mubsir.tests.metrics import (boundary_scores, cer, hallucination_rate,
                           reading_order_accuracy, wer)
 from mubsir.arabic import canonical
 from mubsir.lines import merge_fragments
@@ -103,7 +104,7 @@ def main():
     ap.add_argument("--engine", default="ppocr-arabic")
     args = ap.parse_args()
     rows = []
-    for pdf in sorted(glob.glob("tests/synth/*.pdf")):
+    for pdf in sorted(glob.glob("mubsir/tests/synth/*.pdf")):
         if args.only and args.only not in pdf:
             continue
         rows.append(eval_ocr(pdf, pdf.replace(".pdf", ".gold.json"),
@@ -116,7 +117,7 @@ def main():
         print(f"{r['style']:<15}{r['pages']:>4}{r['sec_per_page']:>7.2f}{r['cer']:>8.3f}"
               f"{r['wer']:>8.3f}{r['halluc']:>8.3f}{f1:>9}{r['reading_order']:>8.3f}"
               f"{r['fp'] or 0:>4}{r['fn'] or 0:>4}")
-    out = f"tests/results_ocr_{args.engine}.json"
+    out = f"mubsir/tests/results_ocr_{args.engine}.json"
     json.dump(rows, open(out, "w"), indent=1)
     print(f"\nwrote {out}")
 

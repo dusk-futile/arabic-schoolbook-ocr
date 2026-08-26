@@ -15,8 +15,7 @@ from typing import Iterable, List, Optional, Set, Tuple
 
 from .arabic import canonical, strip_tashkeel
 
-_MODELS = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
-                       "models", "lexicon")
+from .paths import LEXICON_DIR as _MODELS
 LEXICON_PATH = os.path.join(_MODELS, "ar_words.txt.gz")
 ENGLISH_PATH = os.path.join(_MODELS, "en_words.txt.gz")
 

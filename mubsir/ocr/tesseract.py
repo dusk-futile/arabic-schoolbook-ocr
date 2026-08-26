@@ -25,9 +25,11 @@ import cv2
 import numpy as np
 
 from ..model import Line
-from .engine import MODELS_DIR, OCREngine
+from .engine import OCREngine
 
-_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from ..paths import MODELS_DIR, PKG_DIR
+
+_ROOT = os.path.dirname(PKG_DIR)
 
 # Searched in order. The bundled micromamba environment first, so a machine
 # without an admin-installed Tesseract still works.

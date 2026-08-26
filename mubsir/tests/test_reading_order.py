@@ -8,7 +8,8 @@ the lines cannot lose one, and the first test here pins that down.
 import os
 import sys
 
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+sys.path.insert(0, os.path.dirname(os.path.dirname(
+    os.path.dirname(os.path.abspath(__file__)))))
 
 from mubsir.model import Line
 from mubsir.reading_order import order_lines

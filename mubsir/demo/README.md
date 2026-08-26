@@ -9,6 +9,8 @@ pages/indent_tight.pdf   3 pages, justified with a first-line indent and no
                          Arabic book layout
 pages/two_col.pdf        2 pages, two columns, right-to-left reading order
 pages/*.gold.json        the exact rectangle and text of every paragraph
+scans/page_*.png         the same pages rasterised at 180 dpi in greyscale,
+                         so the OCR path can be tried without a scanner
 ```
 
 `*.gold.json` records where each paragraph physically sits on the page, which
@@ -21,8 +23,7 @@ python demo/run_demo.py
 ```
 
 That runs both paths and prints CER, WER, paragraph F1 and reading order
-against the ground truth above. It rasterises the pages itself, so the scanned
-path is exercised without needing a scanner.
+against the ground truth above.
 
 ## Provenance and licence
 

@@ -415,7 +415,7 @@ happen. `emboss_safe()` runs over every paragraph on the way into the document:
 Word does the line wrapping. The file contains **no manual line breaks at all**.
 
 Verified two ways. `tests/test_emboss_safety.py` asserts it at the API level,
-and `tests/audit_docx.py` re-checks the finished `.docx` at the XML level:
+and `eval/audit_docx.py` re-checks the finished `.docx` at the XML level:
 
 ```
 AUDIT  output/sample_book.docx
@@ -738,13 +738,13 @@ number that reaches the reader.
 ## Reproducing every number here
 
 ```bash
-python tests/make_synthetic.py   # regenerate the gold set
-python tests/run_eval.py           # §2.1 born-digital structure
-python tests/run_eval_ocr.py       # §2.3 scanned path, CER/WER/F1
-python tests/run_eval_real.py      # §1.3 font repair on the real book
-python tests/train_boundary.py    # §9 train + leave-one-style-out
-python -m pytest tests/ -q       # §8 whitespace guarantees
-python tests/audit_docx.py FILE  # §8 audit a finished .docx
-python tests/make_pairs.py        # §10 generate (ocr, truth) pairs
-python tests/train_corrector.py   # §10 train + measure the corrector
+.venv/bin/python eval/make_synthetic.py     # regenerate the gold set
+.venv/bin/python eval/run_eval.py           # §2.1 born-digital structure
+.venv/bin/python eval/run_eval_ocr.py       # §2.3 scanned path, CER/WER/F1
+.venv/bin/python eval/run_eval_real.py      # §1.3 font repair on the real book
+.venv/bin/python eval/train_boundary.py    # §9 train + leave-one-style-out
+.venv/bin/python -m pytest tests/ -q       # §8 whitespace guarantees
+.venv/bin/python eval/audit_docx.py FILE  # §8 audit a finished .docx
+.venv/bin/python eval/make_pairs.py        # §10 generate (ocr, truth) pairs
+.venv/bin/python eval/train_corrector.py   # §10 train + measure the corrector
 ```

@@ -11,8 +11,7 @@ import numpy as np
 from ..model import Line
 from .ppocr_arabic import ArabicRecognizer, segment_words
 
-MODELS_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(
-    os.path.abspath(__file__)))), "models")
+from ..paths import MODELS_DIR  # noqa: F401
 
 
 class OCREngine:

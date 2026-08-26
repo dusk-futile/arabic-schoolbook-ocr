@@ -17,15 +17,16 @@ import sys
 from collections import Counter
 from typing import Dict, List, Tuple
 
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+sys.path.insert(0, os.path.dirname(os.path.dirname(
+    os.path.dirname(os.path.abspath(__file__)))))
 
 from mubsir.arabic import canonical, strip_tashkeel
 from mubsir.lexicon import Lexicon
 from mubsir.ocr_correct import (ConfusionModel, OCRCorrector, is_arabic_word,
                                 strip_edges)
 
-PAIRS = "tests/pairs.jsonl"
-CORPUS_GLOBS = ["demo/corpus/*.txt", "demo/corpus/*.txt"]
+PAIRS = "mubsir/tests/pairs.jsonl"
+CORPUS_GLOBS = ["mubsir/demo/corpus/*.txt", "mubsir/demo/corpus/*.txt"]
 
 
 def load_pairs(path: str) -> List[dict]:

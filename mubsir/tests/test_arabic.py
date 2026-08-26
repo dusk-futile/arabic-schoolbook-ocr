@@ -1,6 +1,7 @@
 """Normalisation must never damage orthography, and must repair encoding."""
 import sys, os
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+sys.path.insert(0, os.path.dirname(os.path.dirname(
+    os.path.dirname(os.path.abspath(__file__)))))
 import pytest
 from mubsir.arabic import (canonical, search_form, unshape, strip_tashkeel,
                            convert_digits, arabize_punctuation, char_profile)

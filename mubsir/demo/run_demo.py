@@ -10,21 +10,21 @@ import os
 import sys
 import time
 
-ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 sys.path.insert(0, ROOT)
 
 import cv2
 import numpy as np
 import pymupdf
 
-from tests.metrics import boundary_scores, cer, reading_order_accuracy, wer
+from mubsir.tests.metrics import boundary_scores, cer, reading_order_accuracy, wer
 from mubsir.arabic import canonical
 from mubsir.lines import merge_fragments
 from mubsir.model import PageInfo
 from mubsir.pdf_text import extract_page_lines
 from mubsir.structure import build_paragraphs, order_page_lines, page_geometry
 
-PAGES = os.path.join(ROOT, "demo", "pages")
+PAGES = os.path.join(ROOT, "mubsir", "demo", "pages")
 
 
 def _in(line, rect, tol=8.0):
@@ -101,4 +101,4 @@ if __name__ == "__main__":
     for n in ["indent_tight", "two_col"]:
         run(n)
     print("\nTo convert your own file:")
-    print("  python -m mubsir yourfile.pdf -o output")
+    print("  python run.py yourfile.pdf")

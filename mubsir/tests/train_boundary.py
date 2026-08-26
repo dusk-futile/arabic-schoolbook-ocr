@@ -24,7 +24,8 @@ import sys
 from collections import defaultdict
 from typing import Dict, List, Tuple
 
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+sys.path.insert(0, os.path.dirname(os.path.dirname(
+    os.path.dirname(os.path.abspath(__file__)))))
 
 import numpy as np
 import pymupdf
@@ -35,8 +36,8 @@ from mubsir.structure import (BREAK_THRESHOLD, FEATURE_NAMES, break_features,
                               decide_break, find_furniture, order_page_lines,
                               page_geometry)
 
-TRAIN_DIR = "tests/train"
-OUT = os.path.join("models", "boundary_lr.json")
+TRAIN_DIR = "mubsir/tests/train"
+OUT = os.path.join("mubsir", "models", "boundary_lr.json")
 
 
 def _in(line, rect, tol=6.0):

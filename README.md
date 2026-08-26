@@ -25,24 +25,25 @@ listing the few paragraphs worth a second look.
 
 ## Run it
 
-```bash
-./setup.sh                 # setup.bat on Windows. Once. No admin needed.
-python demo/run_demo.py    # measures itself against ground truth that ships here
-```
-
-Then your own file:
+One file, one command, on any platform:
 
 ```bash
-python -m mubsir book.pdf -o output      # → output/book.docx
-python -m mubsir.webui                   # or a browser page, drag files in
+python run.py              # opens a page in your browser — drag files in
+python run.py book.pdf     # or convert straight to output/book.docx
+python run.py --demo       # measures itself against ground truth that ships here
+python run.py --test       # runs the test suite
 ```
+
+The first run installs everything — a private Python, the dependencies,
+Tesseract and the models — **all inside your home folder, with no administrator
+rights**, which is the point: the machines this is for are locked down.
 
 ---
 
 ## Accuracy
 
-Measured, not claimed. `python demo/run_demo.py` reproduces these against the
-ground truth in `demo/pages/*.gold.json`.
+Measured, not claimed. `python run.py --demo` reproduces these against the
+ground truth in `mubsir/demo/pages/*.gold.json`.
 
 | Input | Characters right | Words right | Paragraphs right | Reading order |
 |---|---|---|---|---|
@@ -119,7 +120,7 @@ one. So it is guaranteed by construction, not checked afterwards:
 Check any finished file yourself:
 
 ```bash
-python tests/audit_docx.py output/book.docx
+python mubsir/tests/audit_docx.py output/book.docx
 ```
 
 ```
@@ -218,11 +219,22 @@ PDF, scans or photos
 ## Reproduce everything
 
 ```bash
-python demo/run_demo.py           # accuracy on the bundled pages
-python -m pytest tests/ -q        # 40 tests, incl. whitespace guarantees
-python tests/run_eval.py          # paragraph accuracy, text-layer path
-python tests/run_eval_ocr.py      # scanned path: CER / WER / reading order
-python tests/train_boundary.py    # retrain the classifier, leave-one-style-out
+python run.py --demo                    # accuracy on the bundled pages
+python run.py --test                    # 40 tests, incl. whitespace guarantees
+python mubsir/tests/run_eval.py         # paragraph accuracy, text-layer path
+python mubsir/tests/run_eval_ocr.py     # scanned path: CER / WER / reading order
+python mubsir/tests/train_boundary.py   # retrain the classifier, leave-one-style-out
+```
+
+Everything lives in six things:
+
+```
+README.md          this
+LICENSE            Apache-2.0
+hero.gif           the picture above
+requirements.txt   the dependencies
+run.py             install and run, any platform
+mubsir/            the pipeline, its tests, the demo pages and the models
 ```
 
 ## Where it still fails
@@ -241,4 +253,4 @@ Apache-2.0 — see [LICENSE](LICENSE). Bundled components keep their own:
 PP-OCRv4 Arabic and RapidOCR detection models (Apache-2.0), Tesseract
 (Apache-2.0), the Arabic wordlist derived from LibreOffice's hunspell dictionary
 (GPL/LGPL/MPL), and an English wordlist from Webster's 1934 (public domain).
-See `models/lexicon/SOURCE.md`. The wordlists are optional.
+See `mubsir/models/lexicon/SOURCE.md`. The wordlists are optional.

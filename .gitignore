@@ -1,22 +1,21 @@
-# Environments and installed tooling
 .venv/
 .mm-tess/
 __pycache__/
 *.pyc
 .pytest_cache/
 
-# Downloaded at setup, never committed
-models/arabic_v4/
-models/tessdata_best/
-models/lexicon/*.gz
+# Downloaded by run.py on first use, never committed
+mubsir/models/arabic_v4/
+mubsir/models/tessdata_best/
+mubsir/models/lexicon/*.gz
 
 # Your documents and results stay yours
 input/
 output/
 samples/
 
-# Generated during evaluation
-tests/synth/
-tests/train/
-tests/pairs.jsonl
-tests/results_*.json
+# Generated while evaluating
+mubsir/tests/synth/
+mubsir/tests/train/
+mubsir/tests/pairs.jsonl
+mubsir/tests/results_*.json

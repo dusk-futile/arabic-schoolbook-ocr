@@ -12,8 +12,9 @@ import re
 import sys
 import urllib.request
 
-ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-MODELS = os.path.join(ROOT, "models")
+from mubsir.paths import MODELS_DIR as MODELS, PKG_DIR
+
+ROOT = os.path.dirname(PKG_DIR)
 UA = {"User-Agent": "mubsir/0.2 (+offline Arabic OCR)"}
 
 BINARIES = [

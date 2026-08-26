@@ -7,11 +7,12 @@ import json
 import os
 import sys
 
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+sys.path.insert(0, os.path.dirname(os.path.dirname(
+    os.path.dirname(os.path.abspath(__file__)))))
 
 import pymupdf
 
-from tests.metrics import boundary_scores, cer, wer
+from mubsir.tests.metrics import boundary_scores, cer, wer
 from mubsir.pdf_text import extract_page_lines, layer_quality
 from mubsir.structure import build_paragraphs, find_furniture, order_page_lines, page_geometry
 from mubsir.model import PageInfo
@@ -86,7 +87,7 @@ def eval_doc(pdf_path, gold_path):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--synth", default="tests/synth")
+    ap.add_argument("--synth", default="mubsir/tests/synth")
     args = ap.parse_args()
     rows = []
     for pdf in sorted(glob.glob(os.path.join(args.synth, "*.pdf"))):
@@ -107,7 +108,7 @@ def main():
         print(f"{r['style']:<15}{r['pages']:>4}{r['lines']:>7}{r['gold_paras']:>6}"
               f"{r['pred_paras']:>6}{r['boundary_f1']:>9.4f}{r['false_breaks']:>5}"
               f"{r['missed_breaks']:>5}{r['n_gaps']:>6}")
-    json.dump(rows, open("tests/results_structure.json", "w"), indent=1)
+    json.dump(rows, open("mubsir/tests/results_structure.json", "w"), indent=1)
     print("\nwrote tests/results_structure.json")
 
 

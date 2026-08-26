@@ -1,6 +1,7 @@
 """Paragraph reconstruction: the decision that ruins an emboss when wrong."""
 import sys, os
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+sys.path.insert(0, os.path.dirname(os.path.dirname(
+    os.path.dirname(os.path.abspath(__file__)))))
 from mubsir.model import Line, PageInfo
 from mubsir.structure import (build_paragraphs, decide_break, page_geometry,
                               find_gutter, find_furniture)

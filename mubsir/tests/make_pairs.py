@@ -19,7 +19,8 @@ import os
 import sys
 import time
 
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+sys.path.insert(0, os.path.dirname(os.path.dirname(
+    os.path.dirname(os.path.abspath(__file__)))))
 
 import cv2
 import numpy as np
@@ -30,7 +31,7 @@ from mubsir.lines import merge_fragments
 from mubsir.model import PageInfo
 from mubsir.structure import order_page_lines, page_geometry
 
-OUT = "tests/pairs.jsonl"
+OUT = "mubsir/tests/pairs.jsonl"
 
 
 def page_image(doc, i, dpi=300):
@@ -69,7 +70,7 @@ def align_words(truth: str, hyp: str):
 def main() -> int:
     from mubsir.ocr import best_available
     engine = best_available()
-    pdfs = sorted(glob.glob("tests/train/*.pdf"))
+    pdfs = sorted(glob.glob("mubsir/tests/train/*.pdf"))
     if not pdfs:
         print("no training PDFs; run eval/make_synthetic.py first")
         return 1
