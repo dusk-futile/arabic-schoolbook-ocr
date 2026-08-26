@@ -1,43 +1,22 @@
-# Private source material and all derivatives
-private_data/
-artifacts/
-tmp/
-
-# Dataset payloads and model weights must remain outside version control
-datasets/
-models/
-checkpoints/
-adapters/
-
-# Local environments and caches
+# Environments and installed tooling
 .venv/
+.mm-tess/
 __pycache__/
-*.py[cod]
-.cache/
-.huggingface/
+*.pyc
 .pytest_cache/
-.ruff_cache/
-.mypy_cache/
-.coverage
-coverage.xml
-dist/
-build/
-*.egg-info/
-node_modules/
-web/node_modules/
-web/dist/
-.codex-*.log
-examples/demo/output/demo_rendered_2.pdf
-examples/demo/output/rendered2/
 
-# Private application inputs, checkpoints, and evaluation annotations
-jobs/
-data/uploads/
-data/ground_truth/
-output/private/
+# Downloaded at setup, never committed
+models/arabic_v4/
+models/tessdata_best/
+models/lexicon/*.gz
 
-# Secrets and local configuration
-.env
-.env.*
-!.env.example
-secrets/
+# Your documents and results stay yours
+input/
+output/
+samples/
+
+# Generated during evaluation
+tests/synth/
+tests/train/
+tests/pairs.jsonl
+tests/results_*.json
