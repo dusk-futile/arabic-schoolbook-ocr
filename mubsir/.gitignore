@@ -9,11 +9,11 @@ output/
 eval/synth/
 eval/train/
 eval/corpus/
-models/*
-!models/lexicon/
-models/lexicon/*
-!models/lexicon/SOURCE.md
-!models/boundary_lr.json
+eval/pairs.jsonl
+eval/results_*.json
+models/arabic_v4/
+models/tessdata_best/
+models/lexicon/*.gz
 __pycache__/
 *.pyc
 .pytest_cache/

@@ -119,15 +119,18 @@ VERDICT: clean for embossing
 
 ## Does it use AI?
 
-**Not for the text.** Nothing generative touches a single word, so it cannot
-invent one. Every character comes from either the PDF's own font or the OCR
-engine.
+**Nothing generative touches a single word.** Every character comes from either
+the PDF's own embedded font or the OCR engine, so the tool cannot invent a term
+that was never on the page.
 
-There *is* machine learning, in one narrow place: deciding whether a line break
-is a soft wrap or a real paragraph. Rules handle every boundary they are
-confident about; a trained classifier breaks the ties.
+There is machine learning, in two narrow places, and both were kept only
+because they were measured.
 
-I tried a local language model for this first, and it did not work:
+**1. Deciding where paragraphs end** — the decision that ruins an emboss when
+it is wrong. Rules handle every boundary they are sure of; a trained classifier
+breaks the ties.
+
+I tried a local language model for this first and it failed outright:
 
 | | size | per decision | held-out accuracy |
 |---|---|---|---|
@@ -135,20 +138,32 @@ I tried a local language model for this first, and it did not work:
 | local LLM (`qwen2.5vl:3b`) | 3.2 GB | 4.6 s | **chance** |
 | **the classifier that shipped** | **1.1 KB** | **microseconds** | **0.991** |
 
-Both language models answered *the same word to every question* — `NEW` to all
-of them in English, `نعم` to all of them in Arabic. They followed the framing
-of the question rather than the evidence, because the evidence is geometric:
-how much of the column the previous line filled, how big the vertical gap is. A
-language model handed two snippets of text cannot see that. On one test it
-overrode two correct answers with wrong ones.
+Both models answered *the same word to every question* — `NEW` to all of them
+in English, `نعم` to all of them in Arabic. They followed the framing of the
+question rather than the evidence, because the evidence is geometric: how much
+of the column the previous line filled, how large the vertical gap is. A
+language model handed two snippets of text cannot see that.
 
-So the "small local AI" here is 1.1 KB of logistic-regression weights over
-eleven geometric features, trained on 3,379 labelled boundaries and validated
-**leave-one-style-out**. Used as a tiebreaker on scanned pages it lifts
-paragraph accuracy **0.9143 → 0.9399**, and no layout got worse. You can read
-its weights in `models/boundary_lr.json` and argue with them.
+What shipped is 1.1 KB of logistic-regression weights over eleven geometric
+features, trained on 3,379 labelled boundaries and validated
+**leave-one-style-out**. On scanned pages it lifts paragraph accuracy
+**0.9143 → 0.9553**, and no layout got worse.
 
----
+**2. Fixing the recogniser's own mistakes.** A full noisy-channel corrector was
+built and trained on 1,616 of this pipeline's real errors — and then **rejected,
+because it made the text worse**: it broke 16 correct words for every 5 it
+fixed. That is not a bug, it is the known result. Post-OCR correction pays off
+between about 2% and 10% character error; below that it costs more than it
+returns, and this pipeline is at 1.4%. A published one-step corrector took a
+1.1% CER corpus to 2.1%.
+
+Only corrections that damage **under 0.5% of already-correct words** ship:
+character look-alikes (0.33%), a word-final hamza where an Arabic comma belongs
+(0.00%), and doubled-letter repair with a unique dictionary answer (0.00%).
+
+The rejected corrector is still in the repository, with its training and
+measurement scripts, because knowing *why* it was rejected is worth more than
+not having tried.
 
 ## How heavy is it, and where does it run?
 
@@ -181,12 +196,22 @@ them against ground truth that ships with it.
 |---|---|---|---|---|
 | PDF with a good text layer | 0% | 0% | **99.95%** | **100%** |
 | PDF with a broken text layer | ~10% of words | — | **99.95%** | **100%** |
-| Scanned page, single column | **1.5%** | **4.1%** | 93.2% | **100%** |
+| Scanned page, single column | **1.4%** | **4.1%** | **95.5%** | **100%** |
 | Scanned page, two columns | 8.0% | 13.6% | 87.8% | 99.8% |
 
-Put plainly: on a scanned page **about 99 characters in 100 are right, and 96
-words in 100 are exactly right**. On a book that already has a text layer —
-which the sample book did — the text is exact and the work is all structure.
+Splitting letters from punctuation says more than one number can:
+
+| Scanned, single column | Characters wrong | Words wrong |
+|---|---|---|
+| everything | 1.4% | 4.1% |
+| ignoring punctuation | 1.2% | **2.6%** |
+| **letters only** | **0.98%** | — |
+
+So **under 1 Arabic letter in 100 is wrong, and 97.5% of words are exactly
+right**. Most of what remains is punctuation — chiefly the Arabic comma `،`,
+which the recogniser confuses with `.` because both are small marks on the
+baseline. On a book that already has a text layer — which the sample book did —
+the text is exact and all the work is structure.
 
 ### Against the alternatives
 

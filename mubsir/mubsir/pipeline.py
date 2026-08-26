@@ -201,9 +201,18 @@ class Pipeline:
         if self.opts.correct and self.corrector.available:
             self.progress("Checking words against the lexicon",
                           "مطابقة الكلمات مع المعجم", 0.88)
+            from .ocr_correct import fix_characters, fix_comma_lookalikes
+            comma_fixes = 0
             for p in paras:
                 src = p.lines[0].source if p.lines else "digital"
                 if src == "ocr":
+                    # Character-level repairs first. Two thirds of this
+                    # recogniser's character errors are punctuation, and the
+                    # Arabic comma alone is about a third of all of them, so
+                    # these run before any dictionary work.
+                    p.text = fix_characters(p.text)
+                    p.text, k = fix_comma_lookalikes(p.text, self.corrector.lex)
+                    comma_fixes += k
                     p.text = self.corrector.fix_text(p.text, mode="double")
                 elif src == "font_repair":
                     # Repaired text can carry a spurious letter beside a
@@ -227,6 +236,7 @@ class Pipeline:
             stats["lexicon_edits"] = len(self.corrector.edits)
             full = " ".join(p.text for p in paras)
             stats["lexicon_coverage"] = round(self.corrector.coverage(full), 4)
+            stats["comma_fixes"] = locals().get("comma_fixes", 0)
         if getattr(self, "repair_log", None):
             stats["glyphs_relearned"] = sum(
                 1 for v in self.repair_log.values() if v.get("accepted"))

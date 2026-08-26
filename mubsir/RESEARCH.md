@@ -497,6 +497,102 @@ No style got worse. That is the "small local AI" in this tool: 1.1 KB of
 weights that runs everywhere, not a gigabyte of language model that guesses.
 
 
+---
+
+## 10. Post-OCR correction: built, measured, and mostly rejected
+
+A trained corrector was built to fix the recogniser's remaining word errors: a
+noisy channel with a character confusion model learned from **this pipeline's
+own mistakes**, a dictionary-constrained candidate generator, and a frequency
+prior. Training data came free - 150 rendered pages, 38,263 words at 94.9% word
+accuracy, giving 1,616 aligned error sites.
+
+**It made things worse, and it should not ship.**
+
+| On held-out documents | |
+|---|---|
+| Errors it fixed | 5 |
+| Correct words it broke | 16 |
+| Precision | 23.8% |
+| Damage to already-correct words | 1.44% |
+
+The literature predicts this exactly. Post-OCR correction pays off between
+roughly 2% and 10% CER; below that it costs more than it returns. Huynh, Hamdi
+and Doucet state it directly: *"for low error rates (less than 2% and 10% at the
+character level and the word level respectively), a post-OCR correction is not a
+suitable solution"*. Schaefer and Neudecker took a 1.1% CER corpus to **2.1%**
+with a one-step LSTM corrector. This pipeline sits at 1.44% CER / 4.1% WER -
+below the threshold on both axes.
+
+The arithmetic is unforgiving. With current word error `e`, a corrector that
+fixes fraction `r` of wrong tokens and damages fraction `f` of right ones gives
+net error `e(1-r) + (1-e)f`:
+
+| | recall | false positives | WER |
+|---|---|---|---|
+| Measured noisy-channel corrector | 0.24 | 1.44% | 0.0410 → **0.0451 (worse)** |
+| What it would need | 0.30 | ≤0.50% | 0.0410 → 0.0335 |
+
+So the shipped correction is only what clears a **≤0.5% false-positive bar**,
+measured on 1,533 already-correct words:
+
+| Stage | Damage to correct words | Shipped |
+|---|---|---|
+| Character look-alike fixes (Persian kaf/yeh → Arabic) | 0.33% | yes |
+| Word-final hamza where a comma belongs | 0.00% | yes |
+| Doubled-letter repair, unique dictionary solution | 0.00% | yes |
+| Noisy-channel word correction | 1.44% | **no** |
+
+### Where the error actually is
+
+The confusion model earned its place as a *diagnostic* even though its
+corrector did not ship. Over 1,138 aligned word pairs:
+
+| Class | Share of all character errors |
+|---|---|
+| **Punctuation** | **62.9%** |
+| — the Arabic comma `،` alone | **31%** |
+| Dropped tashkeel | 11.8% |
+| Everything else, letters included | ~25% |
+
+The Arabic comma is read as `.` (210×), `ء` (128×), `,` (98×) and `؛` (83×).
+It is a small mark on the baseline and the recogniser cannot reliably tell it
+from a full stop. Only the unambiguous member of that family is repaired: a
+word-final hamza after an otherwise complete word is not Arabic, so it is safe;
+a word-final full stop very often is, so `.` is deliberately left alone.
+
+Separating the two kinds of error changes what the headline number means:
+
+| | CER | WER |
+|---|---|---|
+| Everything | 0.0144 | 0.0410 |
+| Ignoring punctuation | 0.0116 | **0.0255** |
+| **Letters only** (no punctuation, no diacritics) | **0.0098** | — |
+
+**Under 1% of Arabic letters are wrong and 97.5% of words are exactly right.**
+Most of what remains is punctuation and diacritics, not misread letters.
+
+### Things that did not work, recorded so they are not retried
+
+- **Higher resolution.** 300 dpi is optimal; CER rises monotonically above it
+  (0.0196 at 300 → 0.0254 at 600) because Tesseract's models are trained near
+  300 dpi. More pixels is not more accuracy.
+- **`-l ara+eng`.** Adding English to the recogniser makes Arabic worse
+  (CER 0.028 → 0.043). Latin runs are handled by the English wordlist instead.
+- **Morphological analysis.** Magdy and Darwish measured word-level correction
+  at 11.7% WER against 24.5% for the same system with shallow morphology. Not
+  built.
+- **A direction error worth recording.** The confusion model reports
+  P(observed | truth). It lists Greek letters read as digits - because the
+  corpus contains λογία and the recogniser misread it. Applying that mapping as
+  written would have destroyed genuine Greek in an academic Arabic text. Only
+  mappings whose *source* cannot legitimately occur are applied.
+
+Sources: Huynh, Hamdi & Doucet, ICADL 2020 · Schaefer & Neudecker,
+LaTeCH-CLfL 2020 · Magdy & Darwish, EMNLP 2006 · Kissos & Dershowitz 2016 ·
+Amrhein & Clematide, JLCL 2018.
+
+
 ## Reproducing every number here
 
 ```bash
@@ -507,4 +603,6 @@ weights that runs everywhere, not a gigabyte of language model that guesses.
 .venv/bin/python eval/train_boundary.py    # §9 train + leave-one-style-out
 .venv/bin/python -m pytest tests/ -q       # §8 whitespace guarantees
 .venv/bin/python eval/audit_docx.py FILE  # §8 audit a finished .docx
+.venv/bin/python eval/make_pairs.py        # §10 generate (ocr, truth) pairs
+.venv/bin/python eval/train_corrector.py   # §10 train + measure the corrector
 ```
