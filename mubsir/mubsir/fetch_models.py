@@ -23,6 +23,10 @@ BINARIES = [
      "https://huggingface.co/cycloneboy/arabic_PP-OCRv4_rec_infer/resolve/main/arabic_dict.txt"),
     ("tessdata_best/ara.traineddata",
      "https://github.com/tesseract-ocr/tessdata_best/raw/main/ara.traineddata"),
+    # Needed for the second recognition pass over embedded Latin runs: the
+    # Arabic model has no Latin characters in its alphabet at all.
+    ("tessdata_best/eng.traineddata",
+     "https://github.com/tesseract-ocr/tessdata_best/raw/main/eng.traineddata"),
 ]
 
 # Word lists, fetched from URLs rather than the OS so Windows behaves the same.

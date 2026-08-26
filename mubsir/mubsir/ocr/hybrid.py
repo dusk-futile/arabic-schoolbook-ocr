@@ -41,6 +41,12 @@ from .tesseract import find_binary, find_tessdata
 # A fixed pixel pad is wrong: 26 px is generous at 100 dpi and negligible at
 # 300, where Tesseract merges neighbouring crops into one line and their words
 # get attributed to the wrong source line - or dropped.
+# A Latin reading replaces an Arabic one only above these. See _merge_latin.
+LATIN_MIN_CONF = 0.80     # the Latin recogniser must be sure
+LATIN_MIN_GAP = 0.20      # and must beat the Arabic reading by this margin
+LATIN_STRONG_CONF = 0.85  # above this, a dictionary hit is not required
+LATIN_STRONG_GAP = 0.30
+
 PAD_RATIO = 0.75
 PAD_MIN = 24
 PAD_X = 24
@@ -50,15 +56,19 @@ MAX_CANVAS_H = 60000
 class HybridEngine(OCREngine):
     name = "hybrid-dbnet-tesseract"
 
-    def __init__(self, langs: str = "ara", timeout: int = 600):
+    def __init__(self, langs: str = "ara", timeout: int = 600,
+                 latin_langs: str = "eng", mixed_script: bool = True):
         from rapidocr_onnxruntime import RapidOCR
         self.binary = find_binary()
         self.tessdata = find_tessdata(langs)
         if not self.binary or not self.tessdata:
             raise RuntimeError("Tesseract not available for the hybrid engine")
         self.langs = langs
+        self.latin_langs = latin_langs
+        self.mixed_script = mixed_script and bool(find_tessdata(latin_langs))
         self.timeout = timeout
         self._det = RapidOCR()
+        self._lex = None
 
     # ------------------------------------------------------------ detection
     def detect(self, img_bgr) -> List[Tuple[int, int, int, int]]:
@@ -115,13 +125,88 @@ class HybridEngine(OCREngine):
         except Exception:
             return []
 
-    def _tsv(self, img: np.ndarray, psm: int = 6) -> List[dict]:
+    # ------------------------------------------------------- mixed script
+    @property
+    def lexicon(self):
+        if self._lex is None:
+            from ..lexicon import Lexicon
+            self._lex = Lexicon()
+        return self._lex
+
+    def _merge_latin(self, arabic: List[dict], latin: List[dict]) -> List[dict]:
+        """Swap in the Latin reading wherever it is demonstrably the right one.
+
+        Arabic and Latin need different recognisers and no single Tesseract
+        model does both: `ara` cannot emit a Latin character at all (its
+        alphabet has none), while `ara+eng` reads Latin but degrades Arabic.
+        So each line is read twice and arbitrated per word - and arbitrated by
+        a *dictionary*, not by comparing the two models' confidences, which are
+        not on a common scale.
+
+        A word is replaced only when the Latin reading is confidently better:
+        the Latin recogniser is sure of it, it beats the Arabic reading by a
+        clear margin, it is a real English word, and the Arabic reading is not
+        a real Arabic word. The confidence margin is what does the work - a
+        dictionary check alone swapped 123 words on a page containing 17, since
+        Arabic forced through an English model lands on short English words
+        constantly ("Goll", "Yoga", "Flag"). Those arrive at confidence 0.01 to
+        0.26 while genuine Latin arrives at 0.92 to 0.95, so the two
+        populations barely overlap.
+        """
+        if not latin:
+            return arabic
+        lex = self.lexicon
+        if not lex.english:
+            return arabic
+        out, swapped = [], 0
+        for w in arabic:
+            ax0, ax1 = w["left"], w["left"] + w["width"]
+            best, best_ov = None, 0.0
+            for c in latin:
+                # The two passes read the SAME stacked canvas, so a candidate
+                # must sit on the same row as well as overlap horizontally.
+                # Matching on x alone pairs words from different lines.
+                if abs(c["top"] - w["top"]) > max(12, w["height"] * 0.6):
+                    continue
+                cx0, cx1 = c["left"], c["left"] + c["width"]
+                inter = max(0, min(ax1, cx1) - max(ax0, cx0))
+                narrower = max(1, min(ax1 - ax0, cx1 - cx0))
+                ov = inter / narrower
+                if ov > best_ov:
+                    best, best_ov = c, ov
+            if best is not None and best_ov > 0.55:
+                cand = best["text"].strip()
+                gap = best["conf"] - w["conf"]
+                letters = [c for c in cand if c.isalpha()]
+                latin_share = (sum(1 for c in letters if ord(c) < 0x0250)
+                               / max(len(letters), 1))
+                # A dictionary hit is sufficient but not necessary: most Latin
+                # inside an Arabic book is proper nouns and technical terms
+                # ("Wertheimer", "psychiologia", "WAIS") that no English
+                # wordlist contains. The confidence margin carries those.
+                credible = (lex.contains_en(cand)
+                            or (best["conf"] >= LATIN_STRONG_CONF
+                                and gap >= LATIN_STRONG_GAP))
+                if (best["conf"] >= LATIN_MIN_CONF and gap >= LATIN_MIN_GAP
+                        and latin_share >= 0.8 and len(cand) >= 3 and credible
+                        and not lex.contains(w["text"].strip())):
+                    nw = dict(w)
+                    nw["text"] = cand
+                    out.append(nw)
+                    swapped += 1
+                    continue
+            out.append(w)
+        self.latin_swaps = getattr(self, "latin_swaps", 0) + swapped
+        return out
+
+    def _tsv(self, img: np.ndarray, psm: int = 6, langs: Optional[str] = None) -> List[dict]:
         with tempfile.TemporaryDirectory() as td:
             path = os.path.join(td, "stack.png")
             cv2.imwrite(path, img)
             env = dict(os.environ, TESSDATA_PREFIX=os.path.abspath(self.tessdata))
             proc = subprocess.run(
-                [self.binary, path, "stdout", "-l", self.langs, "--psm", str(psm), "tsv"],
+                [self.binary, path, "stdout", "-l", langs or self.langs,
+                 "--psm", str(psm), "tsv"],
                 capture_output=True, env=env, timeout=self.timeout,
             )
         if proc.returncode != 0:
@@ -155,6 +240,11 @@ class HybridEngine(OCREngine):
             crops.append(img_bgr[max(0, y0 - pad):min(H, y1 + pad), x0:x1])
         canvas, spans = self._stack(crops)
         words = self._tsv(canvas)
+        if self.mixed_script:
+            try:
+                words = self._merge_latin(words, self._tsv(canvas, langs=self.latin_langs))
+            except Exception:
+                pass
 
         # Assign each recognised word to the crop whose band contains its centre.
         buckets: List[List[dict]] = [[] for _ in boxes]

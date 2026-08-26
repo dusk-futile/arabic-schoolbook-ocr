@@ -80,6 +80,10 @@ Two smaller ideas that also seem to be new:
   of its page-segmentation modes. Neither alone is enough. Together: **CER 4.8×
   better, WER 7.5× better** than either approach on its own.
 - **The space/return guarantee is enforced, not hoped for.** See below.
+- **English words inside Arabic books are actually read.** Tesseract's Arabic
+  model has *no Latin characters in its alphabet* — it cannot emit "Psychology"
+  even in principle. Each line is read twice and reconciled per word on the
+  confidence margin, which recovers the Latin **and** lowers overall error.
 
 ---
 
@@ -196,16 +200,16 @@ them against ground truth that ships with it.
 |---|---|---|---|---|
 | PDF with a good text layer | 0% | 0% | **99.95%** | **100%** |
 | PDF with a broken text layer | ~10% of words | — | **99.95%** | **100%** |
-| Scanned page, single column | **1.4%** | **4.1%** | **95.5%** | **100%** |
+| Scanned page, single column | **1.2%** | **3.9%** | **95.5%** | **100%** |
 | Scanned page, two columns | 8.0% | 13.6% | 87.8% | 99.8% |
 
 Splitting letters from punctuation says more than one number can:
 
 | Scanned, single column | Characters wrong | Words wrong |
 |---|---|---|
-| everything | 1.4% | 4.1% |
-| ignoring punctuation | 1.2% | **2.6%** |
-| **letters only** | **0.98%** | — |
+| everything | 1.2% | 3.9% |
+| ignoring punctuation | 1.0% | **2.5%** |
+| **letters only** | **0.9%** | — |
 
 So **under 1 Arabic letter in 100 is wrong, and 97.5% of words are exactly
 right**. Most of what remains is punctuation — chiefly the Arabic comma `،`,

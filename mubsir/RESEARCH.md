@@ -593,6 +593,81 @@ LaTeCH-CLfL 2020 · Magdy & Darwish, EMNLP 2006 · Kissos & Dershowitz 2016 ·
 Amrhein & Clematide, JLCL 2018.
 
 
+---
+
+## 11. English inside Arabic books
+
+Arabic academic books quote English terms and cite Latin titles. The pipeline
+read none of them, and the reason turned out to be structural rather than a
+tuning problem.
+
+**Tesseract's `ara` model has no Latin characters in its alphabet.** Its
+unicharset holds 85 symbols: 48 Arabic letters, 24 punctuation marks and 10
+digits. There is no `a`, no `A`. It is not that Latin is recognised badly - it
+*cannot be emitted at all*, so every embedded English word was guaranteed to
+come back as Arabic noise. Measured on the gold set: **0 of 17 Latin words
+correct.**
+
+The obvious fixes were measured and both fall short:
+
+| Recogniser | Arabic CER | Latin words correct |
+|---|---|---|
+| `ara` | **0.0144** | 0 / 17 (0%) |
+| `script/Arabic` (one model, 143 Arabic + 84 Latin) | 0.0310 | 3 / 17 (18%) |
+| `ara+eng` | 0.0318 | 12 / 17 (71%) |
+
+`ara+eng` reads the Latin but costs more than half the Arabic accuracy, because
+Tesseract arbitrates between the two models per word on a confidence heuristic
+its own source calls "a bit of a hack" - and Arabic is morphologically rich
+enough that correct Arabic words routinely miss its dictionary, so English wins
+words it should not.
+
+### Reading twice and arbitrating
+
+Each line is now read twice - once with `ara`, once with `eng` - and the two
+readings are reconciled per word. Time is spent rather than accuracy: this
+roughly doubles OCR cost.
+
+The arbitration is the whole problem. A **dictionary check alone is useless**:
+it swapped **123 words on pages containing 17** Latin ones, because Arabic
+forced through an English model lands on short English words constantly. The
+false positives are unmistakable once the confidences are put side by side:
+
+| Arabic reading | conf | English reading | conf | margin | correct call |
+|---|---|---|---|---|---|
+| `لا09ا05/000` | 0.44 | **Psychology** | 0.95 | **+0.51** | swap |
+| `05006` | 0.54 | **psyche** | 0.92 | **+0.38** | swap |
+| `الثانوية` | 0.93 | Goll | 0.01 | −0.92 | keep |
+| `رورشاخ` | 0.91 | Flag | 0.03 | −0.88 | keep |
+| `جوسالا` | 0.89 | Yoga | 0.20 | −0.69 | keep |
+| `إكسنر` | 0.90 | sus | 0.24 | −0.66 | keep |
+
+Genuine Latin arrives at 0.92–0.95 confidence; the false positives at
+0.01–0.24. The two populations barely touch. A word is replaced only when the
+Latin reading clears 0.80, beats the Arabic reading by 0.20, is at least 80%
+Latin letters, and the Arabic reading is not itself a dictionary word. A
+dictionary hit is *sufficient but not necessary* - most Latin in these books is
+proper nouns and technical terms (`Psichiologia`, `rorschachiens`, `WAIS`) that
+no English wordlist contains, and only the margin can carry those.
+
+**One bug in this was expensive and worth recording.** Both passes read the
+same stacked canvas, and the first implementation matched candidates by
+horizontal overlap alone - so it paired words from *different lines*. Latin
+recovery sat at 6% until a vertical constraint was added; then it jumped to 47%
+with no other change.
+
+### Result
+
+| | CER | WER | Latin words correct |
+|---|---|---|---|
+| Arabic-only recogniser | 0.0144 | 0.0410 | 0 / 17 (0%) |
+| **Two passes, confidence-arbitrated** | **0.0120** | **0.0393** | **8 / 17 (47%)** |
+
+Overall accuracy *improved* while the Latin was recovered, because the words
+being replaced were noise in the Arabic stream to begin with. The remaining
+misses are mostly short Latin fragments and italic citations.
+
+
 ## Reproducing every number here
 
 ```bash
