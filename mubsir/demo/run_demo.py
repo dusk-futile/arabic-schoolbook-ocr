@@ -27,6 +27,13 @@ from mubsir.structure import build_paragraphs, order_page_lines, page_geometry
 PAGES = os.path.join(ROOT, "mubsir", "demo", "pages")
 
 
+
+def _models_ready() -> bool:
+    """The demo needs the downloaded models; run.py fetches them on first use."""
+    from mubsir.paths import MODELS_DIR
+    return os.path.exists(os.path.join(MODELS_DIR, "arabic_v4", "model.onnx"))
+
+
 def _in(line, rect, tol=8.0):
     x0, y0, x1, y1 = rect
     return y0 - tol <= line.cy <= y1 + tol and x0 - tol <= line.cx <= x1 + tol
@@ -94,6 +101,12 @@ def run(name: str):
 
 
 if __name__ == "__main__":
+    if not _models_ready():
+        print("The models are not downloaded yet.\n\n"
+              "  python run.py --demo\n\n"
+              "does the one-time setup and then runs this. It needs no "
+              "administrator rights.")
+        raise SystemExit(1)
     print("mubsir demo - every number measured against demo/pages/*.gold.json")
     print("The digital row shows structure only: these pages carry the broken")
     print("kind of Arabic text layer on purpose, so its characters are mojibake")
