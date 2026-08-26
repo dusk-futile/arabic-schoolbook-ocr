@@ -668,6 +668,73 @@ being replaced were noise in the Arabic stream to begin with. The remaining
 misses are mostly short Latin fragments and italic citations.
 
 
+---
+
+## 12. Reading order: ordering the lines instead of cutting the page
+
+Two-column pages were the worst document class throughout this project. The
+cause was the shape of the approach, not its parameters.
+
+Finding the gutter and reading each column in turn depends on the gutter being
+a clean full-height corridor. On a real book page it is not: a running head, a
+chapter title, a cross-column subheading and a page number all cross it, and a
+projection profile then reports no gutter at all. Worse, any method that
+*partitions* a page has to do something with the lines that straddle a split -
+the old code appended them afterwards, in whatever order they happened to be in.
+
+The page is no longer segmented. Lines are ordered directly by a topological
+sort over Breuel's partial order:
+
+  * two lines that overlap horizontally: the higher one is read first
+    (flowing down a column);
+  * two lines that share a visual row but not a column: the left one is read
+    first (moving between columns).
+
+Columns are never detected. Reading down one column before starting the next
+*emerges* from the relation, and a cross-column heading separates the bands on
+its own because it overlaps both columns horizontally.
+
+Right-to-left costs one line: the x axis is mirrored on the way in and the
+ordinary left-to-right algorithm runs untouched. This is what Tesseract does
+internally, and its source explains why - left-to-right ordering is implicit in
+too many data structures to fight.
+
+Two details carry the whole thing:
+
+- **Strict total ranks.** Comparing raw coordinates lets two boxes that abut
+  exactly (`i.x1 == j.x0`) each be "not left of" the other, which creates a
+  2-cycle and makes the sort emit nonsense. Ranking each axis with the index as
+  a tiebreak makes ties impossible. This is a real bug in at least one
+  well-known OCR toolkit's RTL path.
+- **Column continuation.** Among the lines ready to emit, prefer the one
+  continuing the current column. Without it the sort interleaves columns
+  wherever the relation happens to be silent.
+
+Results:
+
+| Two-column scans | before | after |
+|---|---|---|
+| CER | 0.080 | **0.071** |
+| WER | 0.136 | **0.124** |
+| Lines lost in ordering | appended out of order | **zero, by construction** |
+
+The ordering is now provably total - 139 lines in, 139 out, asserted in code
+and in `tests/test_reading_order.py` (8 tests, including the abutting-column
+case, unequal column lengths and a cross-column heading).
+
+**One honest correction.** The expectation was that partitioning explained the
+~9% of lines missing on two-column pages. It did not: measured, the ordering
+stage was losing none of them. That shortfall is in *recognition* - the
+detector finds the lines and the recogniser returns nothing usable for some of
+them. Two-column scans remain the worst class and that is where the remaining
+work is.
+
+**A trade worth naming.** Raising the vertical-overlap threshold from 0.50 to
+0.70 nudges paragraph F1 up by 0.002 on the text-layer path and costs 13%
+relative CER on two-column scans. It is set to 0.50: text accuracy is the
+number that reaches the reader.
+
+
 ## Reproducing every number here
 
 ```bash
