@@ -1,0 +1,17 @@
+.venv/
+.venv-*/
+.mm-tess/
+work/
+input/*
+!input/.gitkeep
+output/*
+!output/.gitkeep
+samples/
+eval/synth/
+eval/corpus/
+models/*
+!models/lexicon/
+models/lexicon/*
+!models/lexicon/SOURCE.md
+__pycache__/
+*.pyc

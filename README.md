@@ -4,6 +4,46 @@ Privacy-first Arabic PDF transcription into editable, semantic Word documents. T
 
 > **v0.1.0-alpha:** the local pipeline and public synthetic demo run end to end, but this is not a production-accuracy release. CER/WER are blocked on human ground truth, the real-book formatting audit needs correction, and the optional Gemini pipeline has not been run on private pages.
 
+## New: `mubsir/` — a measured, fully offline pipeline
+
+The [`mubsir/`](mubsir/) directory adds a second, self-contained pipeline built
+around the problem this repository has been blocked on: **accuracy you can
+actually measure**. It ships its own gold set, so every number below is
+reproducible with one command and none of it depends on a private book.
+
+```bash
+cd mubsir && ./setup.sh && python demo/run_demo.py
+```
+
+| Path | CER | WER | Paragraph F1 | Reading order |
+|---|---|---|---|---|
+| Born-digital text layer | exact | exact | **0.9995** | 1.000 |
+| Repaired text layer | 0.905 word validity (clean prose = 0.870) | — | **0.9995** | 1.000 |
+| Scanned, single column | **0.0145** | **0.041** | 0.932 | **1.000** |
+| Scanned, two column | 0.080 | 0.136 | 0.842 | 0.998 |
+
+Two findings drove it:
+
+**An Arabic text layer can be wrong while looking right.** A real 209-page book
+written in Word 2010 extracts as `ليربح التفػؽ كالسػـبة` where it renders as
+`ليصبح التفوق والموهبة`. Every wrong character is still a valid Arabic letter,
+so a character-class corruption check scores the page **0.0% corrupt** while it
+is unreadable — only a dictionary sees it. The glyphs are fine and only their
+Unicode labels are broken, so reading the raw glyph ids back through the
+embedded font recovers the text exactly, with no OCR: **30% → 90% real Arabic
+words**, 209 pages in 94 seconds.
+
+**No single OCR engine is good at both halves of the job.** DBNet finds every
+line including the short paragraph-final ones that carry the paragraph-break
+signal; Tesseract reads Arabic about three times more accurately but silently
+drops those same lines under every page-segmentation mode. Combining
+DBNet detection with Tesseract recognition cut CER 4.8x, WER 7.5x and
+hallucination 10x against the PP-OCR-only baseline.
+
+Full method, the engine benchmark (including EasyOCR, rejected at 50 s/page),
+and an explicit list of what still fails are in
+[`mubsir/RESEARCH.md`](mubsir/RESEARCH.md).
+
 `TRAINING_APPROVED=false`. This repository contains no training workflow, private book, external dataset payload, or fine-tuned weight.
 
 ![Minimal upload, loading, and result concept](docs/design/minimal-workflow-concept.png)
