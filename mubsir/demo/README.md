@@ -9,8 +9,6 @@ pages/indent_tight.pdf   3 pages, justified with a first-line indent and no
                          Arabic book layout
 pages/two_col.pdf        2 pages, two columns, right-to-left reading order
 pages/*.gold.json        the exact rectangle and text of every paragraph
-scans/page_*.png         the same pages rasterised at 180 dpi in greyscale,
-                         so the OCR path can be tried without a scanner
 ```
 
 `*.gold.json` records where each paragraph physically sits on the page, which
